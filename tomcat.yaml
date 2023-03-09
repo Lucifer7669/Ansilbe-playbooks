@@ -1,0 +1,10 @@
+--- #this is:x
+tomcat installaton
+
+- hosts: devlinux
+  user: vedant
+  become: yes
+
+
+  tasks:
+    - name: 

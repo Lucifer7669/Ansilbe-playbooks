@@ -1,0 +1,9 @@
+--- #fgfg
+
+- hosts: devlinux
+  user: vedant
+  become: yes
+
+  tasks: 
+    - name: permisiion
+      file: dest=/srv owner=root group=root mode=777 recurse=yes state=directory 

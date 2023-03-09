@@ -1,0 +1,26 @@
+--- #yt
+- hosts: yt-ansible
+  become: yes
+  user: vedant
+  gather_facts: yes
+  
+  tasks:
+    - name: install maven
+      get_url:
+        url: https://dlcdn.apache.org/maven/maven-3/3.9.0/binaries/apache-maven-3.9.0-bin.tar.gz
+        dest: /mnt
+        mode: '0755'
+    - name: giving file permissions
+      file: dest=/mnt owner=root group=root mode=777 recurse=yes state=directory:x
+
+    - name: extract the maven file
+      unarchive:
+       src: /mnt/apache-maven-3.9.0-bin.tar.gz
+       dest: /opt
+       remote_src: True
+    - name: set environment var
+      lineinfile: dest=/root/.bashrc line='export PATH=$PATH:/mnt/apache-maven-3.9.0/bin' insertafter='EOF' regexp='export PATH=\$PATH:/mnt/apache-maven-3.9.0/bin' state=present
+    - name: source bash file
+      shell: source /root/.bashrc
+      remote_user: root
+

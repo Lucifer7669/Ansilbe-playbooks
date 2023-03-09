@@ -1,0 +1,101 @@
+--- #tomcat
+
+- hosts: devlinux
+  become: yes
+  gather_facts: yes
+  user: vedant
+
+
+  tasks: 
+   - name: Applying Full Permissions to Working Directories:MNT
+     file: dest=/mnt owner=root group=root mode=777 recurse=yes state=directory
+ 
+
+   - name: Applying Full Permissions to SRV
+     file: dest=/srv owner=root group=root mode=777 recurse=yes state=directory
+
+  tasks:
+    - name: Installation of Java-1.8.0jdk
+      action: yum name=java-1.8.0-openjdk-devel.x86_64 state=present
+
+  tasks:
+   - name: Download Apache Maven
+     get_url: url=https://dlcdn.apache.org/maven/maven-3/3.9.0/binaries/apache-maven-3.9.0-bin.tar.gz  dest=/srv/apache-maven-3.9.0-bin.tar.gz
+
+   - name: Untar Maven
+     shell: chdir=/srv creates=/mnt/apache-maven-3.9.0  tar -zxf apache-maven-3.9.0-bin.tar.gz -C /mnt
+
+   - name: Setting Ups Environmental Variables
+     lineinfile:
+       dest: /etc/profile.d/maven.sh
+       create: yes
+       state: present
+       mode: '0744'
+       line: '{{ item }}'
+     with_items:
+       - 'export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.362.b08-1.amzn2.0.1.x86_64'
+       - 'export MAVEN_HOME=/mnt/apache-maven-3.9.0'
+       - 'export M2_HOME=/mnt/apache-maven-3.9.0'
+       - 'export PATH=${M2_HOME}/bin:${PATH}'
+
+  tasks: 
+    - name: Download Apchae Tomcat
+      get_url: url=https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.73/bin/apache-tomcat-9.0.73.tar.gz dest=/srv/apache-tomcat-9.0.73.tar.gz
+
+    - name: Untar Tomcat
+      shell: chdir=/srv creates=/mnt/apache-tomcat-9.0.73 tar -zxf apache-tomcat-9.0.73.tar.gz -C /mnt
+
+    - name: Settings For start tomcat server
+      lineinfile:
+        dest: /etc/systemd/system/tomcat.service
+        create: yes
+        state: present
+        line: '{{ item }}'
+      with_items:
+        - '[Unit]'
+        - 'Description=Apache Tomcat Web Application Container'
+        - 'After=syslog.target network.target'
+
+        - '[Service]'
+        - 'Type=forking'
+
+        - 'Environment=JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/jre'
+        - 'Environment=CATALINA_PID=/mnt/apache-tomcat-9.0.73/temp/tomcat.pid'
+        - 'Environment=CATALINA_HOME=/mnt/apache-tomcat-9.0.73'
+        - 'Environment=CATALINA_BASE=/mnt/apache-tomcat-9.0.73'
+        - "Environment='CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC'"
+        - "Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom'"
+
+        - 'ExecStart=/mnt/apache-tomcat-9.0.73/bin/startup.sh'
+        - 'ExecStop=/bin/kill -15 $MAINPID'
+
+        - 'User=root'
+        - 'Group=root'
+
+        - '[Install]'
+        - 'WantedBy=multi-user.target'
+
+
+    - name: statrting apache tomcat server
+      service:
+        name: tomcat
+        state: started
+
+
+  vars:
+    github_repo: https://github.com/Lucifer7669/game-of-life
+    dest_path: /mnt/project
+          
+
+  tasks:
+    - name: Clone Game_of_life
+      git:
+        repo: "{{ github_repo  }}"
+        dest: "{{ dest_path }}"
+        clone: yes
+
+  tasks:
+    - name: Buildingg Phase of Pom.xml file
+      shell: 'mvn clean install'
+
+
